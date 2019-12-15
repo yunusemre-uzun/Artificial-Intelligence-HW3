@@ -36,14 +36,20 @@ class Node:
 
 
 def theorem_prover(base_clauses, obtained_clauses):
+    copied_base_clauses = base_clauses[0::]
     unification_mapping = unify_clauses(base_clauses)
     if(unification_mapping):
         (base_clauses,obtained_clauses) = change_clauses(base_clauses,obtained_clauses,unification_mapping)
-        for clause in obtained_clauses:
-            base_clauses.append(clause)
-        (res,resolvents) = resolution(base_clauses)
+        set_of_support = obtained_clauses
+        (res,resolvents) = resolution(base_clauses,set_of_support)
+        print_resolvents = []
+        for resolvent in resolvents:
+            if(resolvent[2]==""):
+                print_resolvents.append(set_of_support[resolvent[1]]+"$"+copied_base_clauses[resolvent[0]]+"$empty")
+            else:
+                print_resolvents.append(set_of_support[resolvent[1]]+"$"+copied_base_clauses[resolvent[0]]+"$"+resolvent[2])
         if(res):
-            return ("yes", resolvents)
+            return ("yes", print_resolvents)
         else:
             return ("no", [])
 
@@ -55,17 +61,21 @@ def change_clauses(base_clauses,obtained_clauses,unification_mapping):
             obtained_clauses[i] =  obtained_clauses[i].replace(key,unification_mapping[key])
     return (base_clauses,obtained_clauses)
 
-def resolution(base_clauses):
+def resolution(base_clauses,set_of_support):
     new = []
+    return_resolvents = []
     while(True):
         new = []
-        for i in range(len(base_clauses)):
-            for j in range(i+1,len(base_clauses)):
-                resolvents = resolve(base_clauses[i],base_clauses[j])
-                if("" in resolvents):
-                    return (True,base_clauses)
-                else:
-                    new = list(set(new) | set(resolvents))
+        for i in range(len(base_clauses)-1,-1,-1):
+            for j in range(len(set_of_support)-1,-1,-1):
+                resolvents = resolve(base_clauses[i],set_of_support[j])
+                if(len(resolvents)>0):
+                    set_of_support.append(resolvents[0])
+                    return_resolvents.append((i,j,resolvents[0]))
+                    if("" in resolvents):
+                        return (True,return_resolvents)
+                    else:
+                        new = list(set(new) | set(resolvents))
         if(len(set(new).difference(set(base_clauses)))==0):
             return (False,None)
         else:
